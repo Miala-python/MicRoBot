@@ -5,7 +5,8 @@
         "core": "*",
         "microphone": "*",
         "pxt-sonar": "github:microsoft/pxt-sonar#v0.0.5",
-        "bluetooth": "*"
+        "bluetooth": "*",
+        "lcd1602": "github:xuefengedu/pxt-lcd1602_CN#0ecac824f43d544bf553459adb2696b5f0d3d8d2"
     },
     "files": [
         "main.blocks",

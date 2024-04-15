@@ -1,99 +1,56 @@
-input.onSound(DetectedSound.Loud, function () {
-    if (dtc_on) {
-        dected_("Microphone:" + music.volume())
+function alert (str: string) {
+    if (!(SilenceMode)) {
+        music.stopAllSounds()
+        music.setVolume(255)
+        music.play(music.createSoundExpression(WaveShape.Square, 2739, 1, 255, 0, 300, SoundExpressionEffect.None, InterpolationCurve.Curve), music.PlaybackMode.InBackground)
     }
-})
-// start
-function dtc_reset () {
-    light_OK = pins.analogReadPin(AnalogPin.P3)
-    dist_OK = sonar.ping(
-    DigitalPin.P2,
-    DigitalPin.P1,
-    PingUnit.Centimeters
-    )
-    dtc_on = true
-    Sonerie_Active = [
-    "Sonar",
-    "IR",
-    "Light",
-    "Microphone",
-    "Secoue",
-    "Force"
-    ]
+    LCD_center_show("ATTENTION:", str)
+    bluetooth.uartWriteLine("ALERT: " + str)
 }
-function dected_ (val: string) {
-    bluetooth.uartWriteLine("INTRUSION " + val)
-    dtc = val.split(":")[0]
-    basic.pause(500)
+input.onButtonPressed(Button.B, function () {
+    AutoMove = false
+    AutoStop = true
+    pins.digitalWritePin(DigitalPin.P2, 0)
+})
+function echoTempi () {
+    tempi_cache = pins.analogReadPin(AnalogPin.P10)
+    bluetooth.uartWriteNumber(tempi_cache)
+    bluetooth.uartWriteLine("°C detected.")
+    LCD_center_show("Temperature:", "" + convertToText(tempi_cache) + "°C")
+    return tempi_cache
 }
-function Au_sercours_ (Ahhh: string) {
-    dected_(Ahhh)
-    music.play(music.createSoundExpression(WaveShape.Square, 2779, 5000, 255, 255, 500, SoundExpressionEffect.Warble, InterpolationCurve.Linear), music.PlaybackMode.UntilDone)
-    music.ringTone(2000)
-    music.play(music.createSoundExpression(WaveShape.Noise, 2779, 5000, 255, 255, 5000, SoundExpressionEffect.Warble, InterpolationCurve.Logarithmic), music.PlaybackMode.UntilDone)
-    music.stopAllSounds()
+function Move (P6: number, P7: number, P8: number, P9: number, dir: number) {
+    dir = dir
+    pins.digitalWritePin(DigitalPin.P6, P6)
+    pins.digitalWritePin(DigitalPin.P7, P7)
+    pins.digitalWritePin(DigitalPin.P8, P8)
+    pins.digitalWritePin(DigitalPin.P9, P9)
+    pins.digitalWritePin(DigitalPin.P2, 1)
 }
-input.onButtonPressed(Button.AB, function () {
-    music.stopAllSounds()
-    dtc_on = false
-    basic.pause(10000)
-    music.play(music.builtinPlayableSoundEffect(soundExpression.hello), music.PlaybackMode.UntilDone)
-    dist_OK = sonar.ping(
-    DigitalPin.P2,
-    DigitalPin.P1,
-    PingUnit.Centimeters
-    )
-    dtc_on = true
-})
-input.onGesture(Gesture.Shake, function () {
-    Au_sercours_("Secoue")
-})
-input.onLogoEvent(TouchButtonEvent.Pressed, function () {
-    dtc_on = false
-    music.play(music.stringPlayable("A C - - - - - - ", 200), music.PlaybackMode.UntilDone)
-    basic.pause(10000)
-    dtc_reset()
-    music.play(music.stringPlayable("C A - - - - - - ", 200), music.PlaybackMode.UntilDone)
-})
 control.onEvent(EventBusSource.MES_DPAD_CONTROLLER_ID, EventBusValue.MICROBIT_EVT_ANY, function () {
     if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_1_DOWN) {
-        // N
-        pins.digitalWritePin(DigitalPin.P6, 1)
-        pins.digitalWritePin(DigitalPin.P7, 1)
-        pins.digitalWritePin(DigitalPin.P8, 0)
-        pins.digitalWritePin(DigitalPin.P9, 0)
+        Move(1, 1, 0, 0, 1)
     } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_2_DOWN) {
-        // S
-        pins.digitalWritePin(DigitalPin.P6, 0)
-        pins.digitalWritePin(DigitalPin.P7, 0)
-        pins.digitalWritePin(DigitalPin.P8, 1)
-        pins.digitalWritePin(DigitalPin.P9, 1)
+        Move(0, 0, 1, 1, 2)
     } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_3_DOWN) {
-        // O
-        pins.digitalWritePin(DigitalPin.P6, 1)
-        pins.digitalWritePin(DigitalPin.P7, 1)
-        pins.digitalWritePin(DigitalPin.P8, 1)
-        pins.digitalWritePin(DigitalPin.P9, 1)
+        Move(1, 1, 1, 1, 3)
     } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_4_DOWN) {
-        // E
-        pins.digitalWritePin(DigitalPin.P6, 0)
-        pins.digitalWritePin(DigitalPin.P7, 0)
-        pins.digitalWritePin(DigitalPin.P8, 0)
-        pins.digitalWritePin(DigitalPin.P9, 0)
+        Move(0, 0, 0, 0, 4)
+    } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_A_DOWN) {
+        AutoStop = !(AutoStop)
+    } else if (control.eventValue() == EventBusValue.MES_DPAD_BUTTON_B_DOWN) {
+        AutoMove = !(AutoMove)
+        AutoStop = false
     } else {
-        pins.digitalWritePin(DigitalPin.P6, 0)
-        pins.digitalWritePin(DigitalPin.P7, 0)
-        pins.digitalWritePin(DigitalPin.P8, 0)
-        pins.digitalWritePin(DigitalPin.P9, 0)
+        if (AutoStop) {
+            pins.digitalWritePin(DigitalPin.P2, 0)
+        }
     }
-})
-input.onGesture(Gesture.ThreeG, function () {
-    Au_sercours_("Force:3g")
 })
 bluetooth.onUartDataReceived(serial.delimiters(Delimiters.NewLine), function () {
     bt_reçu = bluetooth.uartReadUntil(serial.delimiters(Delimiters.NewLine)).split(".")
     bluetooth.uartWriteLine("CHECKED: " + bluetooth.uartReadUntil(serial.delimiters(Delimiters.NewLine)))
-    if (bt_reçu.indexOf("mus") == 0) {
+    if (bt_reçu[0] == "mus") {
         music.setVolume(255)
         music.setTempo(100)
         music.play(music.tonePlayable(262, music.beat(BeatFraction.Double)), music.PlaybackMode.UntilDone)
@@ -103,48 +60,6 @@ bluetooth.onUartDataReceived(serial.delimiters(Delimiters.NewLine), function () 
         music.play(music.tonePlayable(330, music.beat(BeatFraction.Quarter)), music.PlaybackMode.UntilDone)
         music.play(music.tonePlayable(349, music.beat(BeatFraction.Quarter)), music.PlaybackMode.UntilDone)
         music.play(music.tonePlayable(392, music.beat(BeatFraction.Breve)), music.PlaybackMode.UntilDone)
-    } else if (bt_reçu.indexOf("dtc") == 0) {
-        if (bt_reçu.indexOf("on") == 1) {
-            dtc_reset()
-        } else if (bt_reçu.indexOf("off") == 1) {
-            dtc_on = false
-        } else if (bt_reçu[1] == "lrt") {
-            if (bt_reçu[2] == "on") {
-                dtc_reset()
-            } else if (bt_reçu[2] == "off") {
-                Sonerie_Active = []
-            }
-        }
-    } else if (bt_reçu.indexOf("capt") == 0) {
-        if (bt_reçu[1] == "log") {
-            bluetooth.uartWriteLine("IR    : " + pins.digitalReadPin(DigitalPin.P12))
-            bluetooth.uartWriteLine("Light : " + pins.analogReadPin(AnalogPin.P3))
-            bluetooth.uartWriteLine("L-OK  : " + light_OK)
-            bluetooth.uartWriteLine("Sonar : " + sonar.ping(
-            DigitalPin.P2,
-            DigitalPin.P1,
-            PingUnit.Centimeters
-            ))
-            bluetooth.uartWriteLine("S-OK  : " + dist_OK)
-            bluetooth.uartWriteLine("Volume: " + input.soundLevel())
-        } else if (bt_reçu[1] == "Son") {
-            bt_capteur = bt_reçu[2]
-            if (bt_reçu.indexOf(bt_capteur) == -1) {
-                Sonerie_Active.push(bt_capteur)
-                bluetooth.uartWriteLine("" + bt_capteur + " ajouté.")
-            } else {
-                bluetooth.uartWriteLine("" + bt_capteur + " déjà présent.")
-            }
-        } else if (bt_reçu[1] == "Soff") {
-            bt_capteur = bt_reçu[2]
-            bt_cache_idx = Sonerie_Active.indexOf(bt_capteur)
-            if (bt_cache_idx == -1) {
-                bluetooth.uartWriteLine("" + bt_capteur + " non présent.")
-            } else {
-                Sonerie_Active.removeAt(bt_cache_idx)
-                bluetooth.uartWriteLine("" + bt_capteur + " retiré.")
-            }
-        }
     } else if (bt_reçu[0] == "pins") {
         if (bt_reçu[2] == "on") {
             if (bt_reçu[1] == "6") {
@@ -167,71 +82,95 @@ bluetooth.onUartDataReceived(serial.delimiters(Delimiters.NewLine), function () 
                 pins.digitalWritePin(DigitalPin.P9, 0)
             }
         }
+    } else if (bt_reçu[0] == "tempi") {
+        echoTempi()
+    } else if (bt_reçu[0] == "capt") {
+        bluetooth.uartWriteNumber(pins.digitalReadPin(DigitalPin.P13))
+        bluetooth.uartWriteLine(" |- Line track")
     }
 })
-// 1; 2 => Ultrasonic Module
-// 3 => TEMT6000 Ambient Light Sensor
-// 16=> PIR Motion Sensor
-// 6~9 => Moteur
+function LCD_center_show (Y0: string, Y1: string) {
+    lcd1602.clear()
+    lcd1602.putString(
+    Y0,
+    Math.floor((16 - Y0.length) / 2),
+    0
+    )
+    lcd1602.putString(
+    Y1,
+    Math.floor((16 - Y1.length) / 2),
+    1
+    )
+}
+// PINS:
+// 0 => Libre
+// 1 => Libre
+// 2 => Relais on/off moteurs
+// 3 => Capt. Crash
+// 4 (Analog) => Capt. IR Mvmt
+// (5 => Boutton)
+// 6~9 => Relais moteurs
+// 10 (Analog) => Capt. T°C
+// (11 => Boutton)
+// (12 => Accéssibilité)
+// 13 => Capt. Suivi de ligne
+// 14 => Sonar Trig.
+// 15 => Sonar echo
+// 16 => Capt. Obstacle
 // 
-let dist = 0
-let bt_cache_idx = 0
-let bt_capteur = ""
+// 
 let bt_reçu: string[] = []
-let dtc = ""
-let light_OK = 0
-let dist_OK = 0
-let dtc_on = false
-let Sonerie_Active: string[] = []
+let tempi_cache = 0
+let dir = 0
+let SilenceMode = false
+let AutoMove = false
+let AutoStop = false
 led.enable(false)
-pins.digitalWritePin(DigitalPin.P6, 0)
-pins.digitalWritePin(DigitalPin.P7, 1)
-pins.digitalWritePin(DigitalPin.P8, 0)
-pins.digitalWritePin(DigitalPin.P9, 1)
-input.setSoundThreshold(SoundThreshold.Loud, 200)
-Sonerie_Active = []
-dtc_on = false
-dist_OK = 0
-light_OK = 0
+pins.digitalWritePin(DigitalPin.P2, 0)
+lcd1602.setAddress(
+lcd1602.I2C_ADDR.addr1
+)
+lcd1602.putString(
+"Bienvenue...",
+0,
+0
+)
+lcd1602.set_LCD_Show(lcd1602.visibled.visible)
+lcd1602.set_backlight(lcd1602.on_off.on)
+AutoStop = true
+AutoMove = false
+SilenceMode = true
 let bt_i = 0
-dtc = ""
-music.play(music.stringPlayable("E - E - - - - - ", 250), music.PlaybackMode.InBackground)
+dir = 0
 bluetooth.startUartService()
-basic.pause(2000)
-dtc_reset()
-music.play(music.stringPlayable("E B - - - - - - ", 300), music.PlaybackMode.UntilDone)
+basic.pause(1000)
+echoTempi()
+loops.everyInterval(1000, function () {
+    if (pins.digitalReadPin(DigitalPin.P4) == 1) {
+        if (!(SilenceMode) && !(music.isSoundPlaying())) {
+            music.setVolume(255)
+            music.setTempo(100)
+            music.play(music.tonePlayable(440, music.beat(BeatFraction.Whole)), music.PlaybackMode.InBackground)
+        }
+        bluetooth.uartWriteLine("Présence IR")
+        LCD_center_show("ATTENTION à VOUS", "MicRoBot")
+    }
+})
 loops.everyInterval(10000, function () {
     bt_i += 10
     bluetooth.uartWriteNumber(bt_i)
     bluetooth.uartWriteLine("s started")
 })
 basic.forever(function () {
-    if (dtc_on) {
-        if (1 == pins.digitalReadPin(DigitalPin.P12)) {
-            dected_("IR")
-        } else if (pins.analogReadPin(AnalogPin.P3) < 5 != light_OK < 5) {
-            dected_("Light:" + pins.analogReadPin(AnalogPin.P3))
-        } else {
-            dist = sonar.ping(
-            DigitalPin.P2,
-            DigitalPin.P1,
-            PingUnit.Centimeters
-            )
-            if (dist > 10 && dist < 400 && 10 < Math.abs(dist_OK - dist)) {
-                dected_("Sonar")
-            }
-        }
+    if (pins.digitalReadPin(DigitalPin.P3) == 1) {
+        pins.digitalWritePin(DigitalPin.P2, 0)
+        alert("Crash")
     }
-})
-basic.forever(function () {
-    if (Sonerie_Active.indexOf(dtc) != -1) {
-        dtc = ""
-        music.play(music.stringPlayable("C5 A E B E A F C5 ", 350), music.PlaybackMode.UntilDone)
-        basic.pause(100)
-        if (music.volume() < 25) {
-            music.setVolume(music.volume() + 25)
+    if (dir == 2) {
+        if (pins.digitalReadPin(DigitalPin.P16) == 1) {
+            pins.digitalWritePin(DigitalPin.P2, 0)
+            dir = 0
+            alert("Object detected")
         }
-    } else {
-        music.setVolume(105)
     }
 })
